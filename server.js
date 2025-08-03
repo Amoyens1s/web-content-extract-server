@@ -19,10 +19,37 @@ function isValidUrl(string) {
   }
 }
 
+// Convert SEO metadata to YAML Front Matter
+function seoToYamlFrontMatter(seo) {
+  if (!seo) return '';
+  
+  const yamlLines = ['---'];
+  for (const [key, value] of Object.entries(seo)) {
+    if (value !== undefined && value !== null && value !== '') {
+      if (typeof value === 'object') {
+        yamlLines.push(`${key}:`);
+        for (const [subKey, subValue] of Object.entries(value)) {
+          if (subValue !== undefined && subValue !== null && subValue !== '') {
+            yamlLines.push(`  ${subKey}: ${JSON.stringify(subValue)}`);
+          }
+        }
+      } else {
+        yamlLines.push(`${key}: ${JSON.stringify(value)}`);
+      }
+    }
+  }
+  yamlLines.push('---', '');
+  return yamlLines.join('\n');
+}
+
 // Main route for content extraction
 app.get('/extract', async (req, res) => {
   try {
     const { url, seo = true, format = 'markdown' } = req.query;
+    
+    // Convert string parameters to appropriate types
+    const includeSeo = seo === 'true' || seo === true;
+    const outputFormat = format;
     
     // Validate URL parameter
     if (!url) {
@@ -39,21 +66,28 @@ app.get('/extract', async (req, res) => {
     }
     
     // Validate format parameter
-    if (format !== 'markdown' && format !== 'json') {
+    if (outputFormat !== 'markdown' && outputFormat !== 'json') {
       return res.status(400).json({
         error: 'Invalid format. Supported formats: markdown, json'
       });
     }
     
     // Extract content using web-content-extract with timeout
-    const result = await extractContent(url, seo === 'true' || seo === true);
+    const result = await extractContent(url, includeSeo);
     
     // Format response based on requested format
-    if (format === 'json') {
+    if (outputFormat === 'json') {
       res.json(result);
     } else {
       // Default to markdown format
-      res.send(result.content);
+      if (includeSeo && result.seo) {
+        // Include SEO metadata as YAML Front Matter
+        const frontMatter = seoToYamlFrontMatter(result.seo);
+        res.send(frontMatter + (result.content || ''));
+      } else {
+        // Return content only
+        res.send(result.content || '');
+      }
     }
   } catch (error) {
     console.error('Error extracting content:', error);
