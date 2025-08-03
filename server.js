@@ -2,7 +2,8 @@ const express = require('express');
 const { extractContent } = require('web-content-extract');
 
 const app = express();
-const PORT = 3000;
+const PORT = 8030;
+const HOST = '0.0.0.0';
 
 // Middleware to parse query parameters
 app.use(express.json());
@@ -80,8 +81,8 @@ app.get('/extract', async (req, res) => {
 });
 
 // Start server
-app.listen(PORT, () => {
-  console.log(`Web Content Extract Server running on http://localhost:${PORT}`);
+app.listen(PORT, HOST, () => {
+  console.log(`Web Content Extract Server running on http://${HOST}:${PORT}`);
   console.log('Use /extract?url=<URL>&seo=true&format=markdown to extract content');
 });
 
