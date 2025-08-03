@@ -9,6 +9,19 @@ const HOST = '0.0.0.0';
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Normalize URL by adding http:// prefix if missing
+function normalizeUrl(url) {
+  if (!url) return url;
+  
+  // Check if URL already has a protocol
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  
+  // Add http:// prefix for URLs without protocol
+  return 'http://' + url;
+}
+
 // Validate URL format
 function isValidUrl(string) {
   try {
@@ -58,8 +71,11 @@ app.get('/extract', async (req, res) => {
       });
     }
     
+    // Normalize URL (add http:// prefix if missing)
+    const normalizedUrl = normalizeUrl(url);
+    
     // Validate URL format
-    if (!isValidUrl(url)) {
+    if (!isValidUrl(normalizedUrl)) {
       return res.status(400).json({
         error: 'Invalid URL format'
       });
@@ -73,7 +89,7 @@ app.get('/extract', async (req, res) => {
     }
     
     // Extract content using web-content-extract with timeout
-    const result = await extractContent(url, includeSeo);
+    const result = await extractContent(normalizedUrl, includeSeo);
     
     // Format response based on requested format
     if (outputFormat === 'json') {
